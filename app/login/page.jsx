@@ -8,15 +8,39 @@ import { API_URL } from "../../src/lib/config";
 
 // Function to decode JWT token
 const decodeToken = (token) => {
+
+     // เช็คก่อนว่า token มีไหม
+     if (!token || typeof token !== "string") {
+          return null;
+     }
+
      try {
+
           const base64Url = token.split('.')[1];
-          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
-               return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-          }).join(''));
+
+          if (!base64Url) {
+               return null;
+          }
+
+          const base64 = base64Url
+               .replace(/-/g, '+')
+               .replace(/_/g, '/');
+
+          const jsonPayload = decodeURIComponent(
+               atob(base64)
+                    .split('')
+                    .map((c) => {
+                         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    })
+                    .join('')
+          );
+
           return JSON.parse(jsonPayload);
+
      } catch (error) {
-          console.error('Failed to decode token:', error);
+
+          console.error("Invalid token:", error);
+
           return null;
      }
 };
@@ -45,51 +69,53 @@ export default function LoginPage() {
           }
 
           try {
+
                setLoading(true);
-               const { data } = await axios.post(`${API_URL}/auth/login`,
+
+               const { data } = await axios.post(
+                    `${API_URL}/auth/login`,
                     {
                          email,
                          password,
-                    },
-                    {
-                         headers: {
-                              "Content-Type": "application/json",
-                         },
                     }
                );
 
-               // Save token
-               localStorage.setItem("token", data.token);
+               // save token
+               localStorage.setItem(
+                    "token",
+                    data.token
+               );
 
-               // Decode token to get user info
-               const decodedToken = decodeToken(data.token);
-               if (decodedToken) {
-                    localStorage.setItem("user", JSON.stringify(decodedToken));
-               }
-
-               // Redirect by role
-               if (decodedToken?.role === "ADMIN") {
-                    router.push("/admin/dashboard");
-               } else if (decodedToken?.role === "TENANT") {
-                    router.push("/tenant/dashboard");
-               } else {
-                    router.push("/");
-               }
+               // save user
+               localStorage.setItem(
+                    "user",
+                    JSON.stringify(data.user)
+               );
 
                Swal.fire({
                     icon: "success",
                     title: "เข้าสู่ระบบสำเร็จ",
                     timer: 1500,
+                    showConfirmButton: false,
                });
 
+               // redirect
+               if (data.user.role === "ADMIN") {
+
+                    router.push("/admin/dashboard");
+
+               } else if (data.user.role === "TENANT") {
+
+                    router.push("/tenant/dashboard");
+
+               } else {
+
+                    router.push("/");
+               }
+
           } catch (error) {
+
                console.log(error);
-               const errorMessage = error.response?.data?.message || error.message || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
-               Swal.fire({
-                    icon: "error",
-                    title: "เกิดข้อผิดพลาด",
-                    text: errorMessage,
-               })
 
           } finally {
                setLoading(false);
