@@ -117,6 +117,16 @@ export default function LoginPage() {
 
                console.log(error);
 
+               const errorMessage =
+                    error.response?.data?.message ||
+                    "เกิดข้อผิดพลาด";
+
+               Swal.fire({
+                    icon: "error",
+                    title: "เข้าสู่ระบบไม่สำเร็จ",
+                    text: errorMessage,
+               });
+
           } finally {
                setLoading(false);
           }
